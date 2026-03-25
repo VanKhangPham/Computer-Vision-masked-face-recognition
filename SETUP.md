@@ -1,12 +1,8 @@
-# Hướng dẫn bắt đầu nhanh cho thành viên mới
+# Hướng dẫn cho thành viên mới
 
 > Đọc file này **trước tiên** khi bắt đầu tham gia dự án.
 
 ---
-
-
-
-
 
 ## Bước 1 – Cài Extensions được đề xuất
 
