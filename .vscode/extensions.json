@@ -1,0 +1,31 @@
+{
+  "recommendations": [
+    // ─── Python cốt lõi ────────────────────────────
+    "ms-python.python",           // Python language support
+    "ms-python.debugpy",          // Python debugger
+    "ms-python.black-formatter",  // Black auto-formatter
+    "ms-python.flake8",           // Linting
+
+    // ─── Jupyter / Notebook ─────────────────────────
+    "ms-toolsai.jupyter",         // Jupyter Notebook support
+    "ms-toolsai.jupyter-keymap",  // Jupyter shortcuts
+
+    // ─── AI / Autocomplete ──────────────────────────
+    "github.copilot",             // GitHub Copilot (nếu có)
+
+    // ─── Git ────────────────────────────────────────
+    "eamodio.gitlens",            // Git history, blame inline
+    "mhutchie.git-graph",         // Visual git graph
+
+    // ─── Tiện ích chung ─────────────────────────────
+    "pkief.material-icon-theme",  // Icon đẹp cho file explorer
+    "usernamehw.errorlens",       // Hiện lỗi inline ngay trên code
+    "christian-kohler.path-intellisense",  // Autocomplete đường dẫn
+    "streetsidesoftware.code-spell-checker", // Kiểm tra chính tả
+    "njpwerner.autodocstring",    // Tự sinh docstring Python
+    "mechatroner.rainbow-csv",    // CSV với màu sắc từng cột
+    "gruntfuggly.todo-tree"       // Highlight TODO / FIXME trong code
+  ],
+
+  "unwantedRecommendations": []
+}

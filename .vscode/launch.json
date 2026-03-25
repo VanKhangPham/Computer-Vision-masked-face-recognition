@@ -1,0 +1,137 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+
+    // ════════════════════════════════════════════════
+    //  NGƯỜI 1 – Data Preparation
+    // ════════════════════════════════════════════════
+    {
+      "name": "👤 Người 1 │ Chuẩn bị dữ liệu",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/data_preparation.py",
+      "args": [
+        "--dataset", "data/raw",
+        "--output",  "data/processed",
+        "--visualize"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": { "PYTHONPATH": "${workspaceFolder}" }
+    },
+    {
+      "name": "👤 Người 1 │ Chỉ thống kê dataset",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/data_preparation.py",
+      "args": ["--dataset", "data/raw", "--output", "data/processed"],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": { "PYTHONPATH": "${workspaceFolder}" }
+    },
+
+    // ════════════════════════════════════════════════
+    //  NGƯỜI 2 – Model Training
+    // ════════════════════════════════════════════════
+    {
+      "name": "👤 Người 2 │ Train đầy đủ (2 giai đoạn)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/train_model.py",
+      "args": [
+        "--data",   "data/processed",
+        "--epochs", "20"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}",
+        "TF_CPP_MIN_LOG_LEVEL": "2"
+      }
+    },
+    {
+      "name": "👤 Người 2 │ Train nhanh (thử nghiệm – 5 epoch)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/train_model.py",
+      "args": [
+        "--data",        "data/processed",
+        "--epochs",      "5",
+        "--no-finetune"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}",
+        "TF_CPP_MIN_LOG_LEVEL": "2"
+      }
+    },
+
+    // ════════════════════════════════════════════════
+    //  NGƯỜI 3 – App / Demo
+    // ════════════════════════════════════════════════
+    {
+      "name": "👤 Người 3 │ Webcam realtime",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/app.py",
+      "args": ["--mode", "webcam", "--camera", "0"],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}",
+        "TF_CPP_MIN_LOG_LEVEL": "2"
+      }
+    },
+    {
+      "name": "👤 Người 3 │ Test ảnh đơn lẻ",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/app.py",
+      "args": [
+        "--mode",  "image",
+        "--input", "data/raw/with_mask/sample.jpg"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": { "PYTHONPATH": "${workspaceFolder}" }
+    },
+    {
+      "name": "👤 Người 3 │ Batch folder",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/app.py",
+      "args": ["--mode", "batch", "--input", "data/raw/with_mask"],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": { "PYTHONPATH": "${workspaceFolder}" }
+    },
+
+    // ════════════════════════════════════════════════
+    //  CHUNG – Debug file hiện tại
+    // ════════════════════════════════════════════════
+    {
+      "name": "🐛 Debug file đang mở",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": { "PYTHONPATH": "${workspaceFolder}" }
+    },
+
+    // ════════════════════════════════════════════════
+    //  TESTS
+    // ════════════════════════════════════════════════
+    {
+      "name": "🧪 Chạy toàn bộ Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/", "-v", "--tb=short"],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": { "PYTHONPATH": "${workspaceFolder}" }
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  // ─── Python ───────────────────────────────────────────────
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+
+  // ─── Linting & Formatting ─────────────────────────────────
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": true,
+  "python.linting.flake8Args": ["--max-line-length=100"],
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4
+  },
+
+  // ─── Editor ───────────────────────────────────────────────
+  "editor.rulers": [100],
+  "editor.wordWrap": "off",
+  "editor.minimap.enabled": false,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+  "editor.suggestSelection": "first",
+  "editor.inlineSuggest.enabled": true,
+
+  // ─── File Explorer ────────────────────────────────────────
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/.pytest_cache": true,
+    "**/node_modules": true,
+    "**/.DS_Store": true
+  },
+  "files.watcherExclude": {
+    "**/data/raw/**": true,
+    "**/data/processed/**": true,
+    "**/models/**": true
+  },
+
+  // ─── Jupyter ──────────────────────────────────────────────
+  "jupyter.askForKernelRestart": false,
+  "jupyter.interactiveWindow.textEditor.executeSelection": true,
+  "notebook.cellToolbarLocation": { "default": "right" },
+
+  // ─── Terminal ─────────────────────────────────────────────
+  "terminal.integrated.defaultProfile.windows": "Command Prompt",
+  "terminal.integrated.scrollback": 5000,
+
+  // ─── Git ──────────────────────────────────────────────────
+  "git.autofetch": true,
+  "git.confirmSync": false
+}

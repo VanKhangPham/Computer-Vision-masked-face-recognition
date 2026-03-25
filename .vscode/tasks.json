@@ -1,0 +1,104 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+
+    // ─────────────────────────────────────────────────
+    //  SETUP
+    // ─────────────────────────────────────────────────
+    {
+      "label": "⚙️  Setup │ Tạo môi trường ảo (.venv)",
+      "type": "shell",
+      "command": "python -m venv .venv && echo ✅ Đã tạo .venv!",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "⚙️  Setup │ Cài requirements.txt",
+      "type": "shell",
+      "command": ".venv/Scripts/pip install -r requirements.txt",
+      "windows": { "command": ".venv\\Scripts\\pip install -r requirements.txt" },
+      "linux":   { "command": ".venv/bin/pip install -r requirements.txt" },
+      "osx":     { "command": ".venv/bin/pip install -r requirements.txt" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "⚙️  Setup │ Cài đặt toàn bộ (tạo venv + install)",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "⚙️  Setup │ Tạo môi trường ảo (.venv)",
+        "⚙️  Setup │ Cài requirements.txt"
+      ],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+
+    // ─────────────────────────────────────────────────
+    //  NGƯỜI 1
+    // ─────────────────────────────────────────────────
+    {
+      "label": "👤 Người 1 │ Chuẩn bị dữ liệu (đầy đủ)",
+      "type": "shell",
+      "command": "python src/data_preparation.py --dataset data/raw --output data/processed --visualize",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ─────────────────────────────────────────────────
+    //  NGƯỜI 2
+    // ─────────────────────────────────────────────────
+    {
+      "label": "👤 Người 2 │ Train model (20 epochs)",
+      "type": "shell",
+      "command": "python src/train_model.py --data data/processed --epochs 20",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "👤 Người 2 │ Train nhanh (5 epochs – test code)",
+      "type": "shell",
+      "command": "python src/train_model.py --data data/processed --epochs 5 --no-finetune",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ─────────────────────────────────────────────────
+    //  NGƯỜI 3
+    // ─────────────────────────────────────────────────
+    {
+      "label": "👤 Người 3 │ Chạy Webcam Demo",
+      "type": "shell",
+      "command": "python src/app.py --mode webcam",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+
+    // ─────────────────────────────────────────────────
+    //  CHUNG
+    // ─────────────────────────────────────────────────
+    {
+      "label": "🧪 Chạy Tests",
+      "type": "shell",
+      "command": "python -m pytest tests/ -v --tb=short",
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "🧹 Dọn dẹp cache",
+      "type": "shell",
+      "command": "find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; find . -name '*.pyc' -delete 2>/dev/null; echo ✅ Đã dọn cache!",
+      "windows": {
+        "command": "for /d /r . %d in (__pycache__) do @if exist \"%d\" rd /s /q \"%d\" & del /s /q *.pyc 2>nul & echo ✅ Đã dọn cache!"
+      },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}

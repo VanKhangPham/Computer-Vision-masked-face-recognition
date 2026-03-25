@@ -1,0 +1,38 @@
+# ── Môi trường ảo 
+.venv/
+venv/
+env/
+
+# ── Python cache 
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# ── Dữ liệu (không commit lên Git – dung lượng lớn) 
+data/raw/
+data/processed/
+
+# ── Model (lưu trên Drive hoặc LFS) 
+models/*.keras
+models/*.h5
+models/*.caffemodel
+models/*.prototxt
+
+# ── Kết quả / logs (giữ lại nếu cần báo cáo, nhưng không commit lên Git)
+results/logs/
+results/screenshots/
+# Giữ lại plot kết quả để báo cáo
+# results/plots/   ← KHÔNG ignore
+
+# ── Notebook checkpoint
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# ── IDE / OS 
+.DS_Store
+Thumbs.db
+*.swp
+
+# ── Kaggle credentials 
+kaggle.json
