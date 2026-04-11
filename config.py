@@ -1,7 +1,15 @@
-
+import sys
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Tuple, List
+
+
+for _stream in (getattr(sys, "stdout", None), getattr(sys, "stderr", None)):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 
 
 # 
@@ -37,7 +45,7 @@ class Config:
     RANDOM_SEED: int         = 42
 
     #  Model 
-    BACKBONE: str            = "MobileNetV2"     # Thay bằng "ResNet50" nếu muốn
+    BACKBONE: str            = "MobileNetV2"     
     PRETRAINED_WEIGHTS: str  = "imagenet"
     DROPOUT_1: float         = 0.5
     DROPOUT_2: float         = 0.3
@@ -53,7 +61,12 @@ class Config:
 
     #  Inference (App) 
     FACE_CONFIDENCE: float   = 0.5               # Ngưỡng phát hiện khuôn mặt
+    DATA_FACE_CONFIDENCE: float = 0.35           # Ngưỡng detect face cho data prep
+    FACE_PADDING_RATIO: float = 0.20             # Nới box để lấy cả khẩu trang
     MASK_THRESHOLD: float    = 0.5               # Ngưỡng phân loại mask
+    SMOOTHING_ALPHA: float   = 0.65              # Lọc mịn xác suất qua các frame
+    TRACK_MAX_DISTANCE: int  = 120               # Pixel cho ghép cùng một khuôn mặt
+    TRACK_TTL: int           = 8                 # Số frame giữ track khi tạm mất mặt
     CAMERA_ID: int           = 0                 # Index webcam (0 = mặc định)
     CAMERA_WIDTH: int        = 1280
     CAMERA_HEIGHT: int       = 720

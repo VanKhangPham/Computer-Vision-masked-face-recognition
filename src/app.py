@@ -1,27 +1,31 @@
 ﻿
-import os
 import sys
 import time
 import argparse
-import urllib.request
 import cv2
 import numpy as np
 from pathlib import Path
 from dataclasses import dataclass
 
-import tensorflow as tf
 from tensorflow.keras.models import load_model as keras_load
-from tensorflow.keras.preprocessing.image import img_to_array
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
-# ── Import cấu hình trung tâm ──────────────────────────────
+# Import cấu hình trung tâm
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import CFG, MODELS_DIR, SCREENSHOTS
+from config import CFG, SCREENSHOTS
+from src.vision_utils import (
+    TemporalSmoother,
+    configure_output_encoding,
+    crop_face,
+    decode_prediction,
+    detect_faces,
+    load_face_detector,
+    prepare_classifier_input,
+)
 
 
-# ══════════════════════════════════════════════════════════
+configure_output_encoding()
+
 #  MÀU SẮC & KIỂU HIỂN THỊ (BGR)
-# ══════════════════════════════════════════════════════════
 GREEN  = (50, 205, 50)
 RED    = (50,  50, 220)
 WHITE  = (255, 255, 255)
@@ -33,94 +37,19 @@ FONT_SCALE = 0.55
 THICKNESS  = 2
 
 
-# ══════════════════════════════════════════════════════════
-#  BƯỚC 1 – LOAD MÔ HÌNH & FACE DETECTOR
-# ══════════════════════════════════════════════════════════
-def _download(url: str, dst: str) -> None:
-    """Tải file về nếu chưa có, hiển thị progress."""
-    print(f"   📥 Đang tải {Path(dst).name} ...")
-    def _progress(count, block, total):
-        if total > 0:
-            pct = min(count * block / total * 100, 100)
-            print(f"\r      {pct:5.1f}%", end="", flush=True)
-    urllib.request.urlretrieve(url, dst, reporthook=_progress)
-    print()   # newline sau progress bar
-
-
-def load_face_detector():
-    """
-    Load face detector OpenCV DNN (Caffe SSD – chính xác hơn Haar).
-    Tự tải file nếu chưa có (~10 MB).
-    """
-    prototxt = CFG.FACE_PROTOTXT
-    weights  = CFG.FACE_WEIGHTS
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-
-    if not Path(prototxt).exists():
-        _download(
-            "https://raw.githubusercontent.com/opencv/opencv/master/"
-            "samples/dnn/face_detector/deploy.prototxt",
-            prototxt,
-        )
-    if not Path(weights).exists():
-        _download(
-            "https://github.com/opencv/opencv_3rdparty/raw/"
-            "dnn_samples_face_detector_20170830/"
-            "res10_300x300_ssd_iter_140000.caffemodel",
-            weights,
-        )
-
-    net = cv2.dnn.readNet(prototxt, weights)
-    print("  ✅ Face detector sẵn sàng (OpenCV DNN – Caffe SSD)")
-    return net
-
-
 def load_mask_model():
     """Load model phân loại mask. Báo lỗi rõ ràng nếu chưa train."""
     path = CFG.MASK_MODEL
     if not Path(path).exists():
-        print(f"\n  ❌ Không tìm thấy model: {path}")
-        print("  → Hãy chạy train_model.py (Người 2) trước!\n")
+        print(f"\n   Không tìm thấy model: {path}")
+        print("  →Hãy chạy train_model.py trước!\n")
         sys.exit(1)
     model = keras_load(path)
-    print(f"  ✅ Mask model sẵn sàng: {Path(path).name}")
+    print(f"  Mask model sẵn sàng: {Path(path).name}")
     return model
 
 
-# ══════════════════════════════════════════════════════════
-#  BƯỚC 2 – PHÁT HIỆN KHUÔN MẶT
-# ══════════════════════════════════════════════════════════
-def detect_faces(frame: np.ndarray, net) -> list:
-    """
-    Trả về list [(x1, y1, x2, y2, confidence), ...].
-    Dùng OpenCV DNN để hỗ trợ nhiều góc độ & ánh sáng kém.
-    """
-    h, w = frame.shape[:2]
-    blob = cv2.dnn.blobFromImage(
-        cv2.resize(frame, (300, 300)), 1.0, (300, 300),
-        (104.0, 177.0, 123.0),
-    )
-    net.setInput(blob)
-    dets = net.forward()
-
-    faces = []
-    for i in range(dets.shape[2]):
-        conf = float(dets[0, 0, i, 2])
-        if conf < CFG.FACE_CONFIDENCE:
-            continue
-        box = dets[0, 0, i, 3:7] * np.array([w, h, w, h])
-        x1, y1, x2, y2 = box.astype("int")
-        # Clamp toạ độ vào kích thước frame
-        x1 = max(0, x1); y1 = max(0, y1)
-        x2 = min(w - 1, x2); y2 = min(h - 1, y2)
-        if x2 > x1 and y2 > y1:           # Loại box suy biến
-            faces.append((x1, y1, x2, y2, conf))
-    return faces
-
-
-# ══════════════════════════════════════════════════════════
 #  BƯỚC 3 – PHÂN LOẠI MASK
-# ══════════════════════════════════════════════════════════
 @dataclass
 class Prediction:
     label     : str    # "Mask" hoặc "No Mask"
@@ -136,48 +65,46 @@ class Prediction:
         return f"{self.label}: {self.confidence:.0%}"
 
 
-def predict_masks(frame: np.ndarray, faces: list, model) -> list[Prediction]:
+def predict_masks(
+    frame: np.ndarray,
+    faces: list,
+    model,
+    smoother: TemporalSmoother | None = None,
+) -> list[Prediction]:
     """Phân loại mask cho từng khuôn mặt."""
     if not faces:
+        if smoother is not None:
+            smoother.update([], [])
         return []
 
     crops = []
-    for (x1, y1, x2, y2, _) in faces:
-        face = frame[y1:y2, x1:x2]
-        if face.size == 0:
-            crops.append(None)
-            continue
+    for face_box in faces:
+        face = crop_face(frame, face_box, padding_ratio=CFG.FACE_PADDING_RATIO)
+        if face is None or face.size == 0:
+            face = frame[face_box[1]:face_box[3], face_box[0]:face_box[2]]
         face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
-        face = cv2.resize(face, CFG.IMAGE_SIZE)
-        face = preprocess_input(img_to_array(face))
-        crops.append(face)
+        crops.append(prepare_classifier_input(face))
 
-    # Lọc và batch predict
-    valid_crops  = [c for c in crops if c is not None]
-    if not valid_crops:
-        return []
-
-    probs = model.predict(np.array(valid_crops), verbose=0)
+    probs = [
+        np.asarray(p, dtype=np.float32)
+        for p in model.predict(np.array(crops, dtype=np.float32), verbose=0)
+    ]
+    if smoother is not None:
+        probs = smoother.update(faces, probs)
 
     results = []
-    prob_iter = iter(probs)
-    for crop in crops:
-        if crop is None:
-            results.append(Prediction("No Mask", 0.0, False))
-            continue
-        p = next(prob_iter)
-        is_mask = float(p[0]) >= CFG.MASK_THRESHOLD
+    for p in probs:
+        label, confidence, is_mask = decode_prediction(p)
         results.append(Prediction(
-            label      = "Mask" if is_mask else "No Mask",
-            confidence = float(p[0]) if is_mask else float(p[1]),
-            is_mask    = is_mask,
+            label=label,
+            confidence=confidence,
+            is_mask=is_mask,
         ))
     return results
 
 
-# ══════════════════════════════════════════════════════════
 #  BƯỚC 4 – VẼ KẾT QUẢ LÊN FRAME
-# ══════════════════════════════════════════════════════════
+
 def _draw_corner(frame, x1, y1, x2, y2, color, length=18, thick=3):
     """Vẽ 4 góc viền thay thế rectangle đầy đủ → trông hiện đại hơn."""
     for (px, py, dx, dy) in [
@@ -230,12 +157,9 @@ def draw_hud(frame: np.ndarray, preds: list[Prediction],
                     FONT, 0.55, color, 1)
     return frame
 
-
-# ══════════════════════════════════════════════════════════
 #  CHẾ ĐỘ 1 – WEBCAM REALTIME
-# ══════════════════════════════════════════════════════════
 def run_webcam(face_net, mask_model) -> None:
-    print("\n  📹 WEBCAM MODE")
+    print("\n  WEBCAM MODE")
     print("  ─────────────────────────────────────")
     print("  [Q]  Thoát")
     print("  [S]  Chụp ảnh màn hình")
@@ -244,7 +168,7 @@ def run_webcam(face_net, mask_model) -> None:
 
     cap = cv2.VideoCapture(CFG.CAMERA_ID)
     if not cap.isOpened():
-        print(f"  ❌ Không mở được camera {CFG.CAMERA_ID}")
+        print(f" Không mở được camera {CFG.CAMERA_ID}")
         return
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH,  CFG.CAMERA_WIDTH)
@@ -253,17 +177,22 @@ def run_webcam(face_net, mask_model) -> None:
     paused    = False
     prev_time = time.time()
     shot_idx  = 0
+    smoother  = TemporalSmoother(
+        alpha=CFG.SMOOTHING_ALPHA,
+        max_distance=CFG.TRACK_MAX_DISTANCE,
+        ttl=CFG.TRACK_TTL,
+    )
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
     while True:
         if not paused:
             ret, frame = cap.read()
             if not ret:
-                print("  ❌ Không đọc được frame")
+                print("  Không đọc được frame")
                 break
 
             faces = detect_faces(frame, face_net)
-            preds = predict_masks(frame, faces, mask_model)
+            preds = predict_masks(frame, faces, mask_model, smoother=smoother)
 
             curr_time = time.time()
             fps       = 1.0 / max(curr_time - prev_time, 1e-6)
@@ -288,7 +217,7 @@ def run_webcam(face_net, mask_model) -> None:
 
     cap.release()
     cv2.destroyAllWindows()
-    print("  ✅ Đã thoát webcam.")
+    print("  Đã thoát webcam.")
 
 
 # ══════════════════════════════════════════════════════════
@@ -299,7 +228,7 @@ def run_image(path: str, face_net, mask_model,
     """Nhận diện mask trong 1 ảnh tĩnh."""
     frame = cv2.imread(path)
     if frame is None:
-        print(f"  ❌ Không đọc được ảnh: {path}")
+        print(f"  Không đọc được ảnh: {path}")
         return {}
 
     t0    = time.perf_counter()
@@ -326,7 +255,7 @@ def run_image(path: str, face_net, mask_model,
         out = Path("results") / f"pred_{Path(path).name}"
         out.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(out), frame)
-        print(f"  💾 Lưu kết quả: {out}")
+        print(f" Lưu kết quả: {out}")
 
     if show:
         cv2.imshow(f"[Q] đóng – {Path(path).name}", frame)
@@ -351,10 +280,10 @@ def run_batch(folder: str, face_net, mask_model) -> None:
               if p.suffix.lower() in EXTS]
 
     if not images:
-        print(f"  ❌ Không tìm thấy ảnh trong: {folder}")
+        print(f"  Không tìm thấy ảnh trong: {folder}")
         return
 
-    print(f"\n  📂 BATCH MODE – {len(images)} ảnh")
+    print(f"\n  BATCH MODE – {len(images)} ảnh")
     print("  ─" * 25)
 
     all_results  = []
@@ -374,11 +303,11 @@ def run_batch(folder: str, face_net, mask_model) -> None:
     # Tổng kết
     avg_ms = np.mean([r["elapsed_ms"] for r in all_results]) if all_results else 0
     print("\n" + "═" * 45)
-    print(f"  ✅ Hoàn tất batch processing")
+    print(f"  Hoàn tất batch processing")
     print(f"  Số ảnh đã xử lý   : {len(all_results)}")
     print(f"  Tổng khuôn mặt    : {total_mask + total_nomask}")
-    print(f"  ✅ Đeo khẩu trang  : {total_mask}")
-    print(f"  ❌ Không đeo        : {total_nomask}")
+    print(f"  Đeo khẩu trang  : {total_mask}")
+    print(f"  Không đeo        : {total_nomask}")
     print(f"  Thời gian TB/ảnh  : {avg_ms:.0f} ms")
     print("═" * 45)
 
@@ -408,6 +337,7 @@ def main():
 
     # Load models
     face_net   = load_face_detector()
+    print("  Face detector sẵn sàng (OpenCV DNN – Caffe SSD)")
     mask_model = load_mask_model()
 
     # Phân nhánh

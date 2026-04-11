@@ -12,6 +12,7 @@ __pycache__/
 # ── Dữ liệu (không commit lên Git – dung lượng lớn) 
 data/raw/
 data/processed/
+data/review/
 
 # ── Model (lưu trên Drive hoặc LFS) 
 models/*.keras

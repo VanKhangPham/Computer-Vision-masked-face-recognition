@@ -1,12 +1,6 @@
-"""
-Member: TV 2
-Task: build, train, evaluate, and save face-mask classification model.
-"""
-
-import argparse
+﻿import argparse
 import sys
 from pathlib import Path
-
 import matplotlib
 
 matplotlib.use("Agg")
@@ -50,11 +44,15 @@ def _num_samples(gen) -> int:
     return int(getattr(gen, "samples", getattr(gen, "n", 0)))
 
 
+def _num_steps(gen) -> int:
+    try:
+        return len(gen)
+    except TypeError:
+        return int(np.ceil(_num_samples(gen) / CFG.BATCH_SIZE))
+
+
 def build_model() -> tuple[Model, Model]:
-    """
-    Backbone: MobileNetV2 pretrained on ImageNet (initially frozen).
-    Head: AvgPool -> Flatten -> Dense -> BN -> Dropout -> Dense -> Dropout -> Softmax.
-    """
+    
     print("\nBUILD MODEL")
     print("-" * 50)
     print(f"Backbone : {CFG.BACKBONE}")
@@ -143,9 +141,9 @@ def train_phase1(model, base, train_gen, val_gen, epochs: int):
 
     return model.fit(
         train_gen,
-        steps_per_epoch=max(1, _num_samples(train_gen) // CFG.BATCH_SIZE),
+        steps_per_epoch=max(1, _num_steps(train_gen)),
         validation_data=val_gen,
-        validation_steps=max(1, _num_samples(val_gen) // CFG.BATCH_SIZE),
+        validation_steps=max(1, _num_steps(val_gen)),
         epochs=epochs,
         callbacks=_get_callbacks(1),
     )
@@ -171,9 +169,9 @@ def train_phase2(model, base, train_gen, val_gen, epochs: int):
 
     return model.fit(
         train_gen,
-        steps_per_epoch=max(1, _num_samples(train_gen) // CFG.BATCH_SIZE),
+        steps_per_epoch=max(1, _num_steps(train_gen)),
         validation_data=val_gen,
-        validation_steps=max(1, _num_samples(val_gen) // CFG.BATCH_SIZE),
+        validation_steps=max(1, _num_steps(val_gen)),
         epochs=epochs,
         callbacks=_get_callbacks(2),
     )
@@ -189,7 +187,7 @@ def evaluate_model(model: Model, test_gen) -> dict:
         raise ValueError("Test split is empty.")
 
     test_gen.reset()
-    steps = int(np.ceil(test_samples / CFG.BATCH_SIZE))
+    steps = max(1, _num_steps(test_gen))
     probs = model.predict(test_gen, steps=steps, verbose=1)
     y_pred = np.argmax(probs, axis=1)[:test_samples]
     y_true = np.asarray(test_gen.classes)[:test_samples]
