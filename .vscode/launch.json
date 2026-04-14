@@ -10,21 +10,18 @@
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/src/data_preparation.py",
-      "args": [
-        "--dataset", "data/raw",
-        "--output",  "data/processed",
-        "--visualize"
-      ],
       "console": "integratedTerminal",
       "justMyCode": true,
       "env": { "PYTHONPATH": "${workspaceFolder}" }
     },
     {
-      "name": "👤 Người 1 │ Chỉ thống kê dataset",
+      "name": "👤 Người 1 │ Audit dataset",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/src/data_preparation.py",
-      "args": ["--dataset", "data/raw", "--output", "data/processed"],
+      "program": "${workspaceFolder}/src/audit_dataset.py",
+      "args": [
+        "--report", "results/logs/dataset_audit.csv"
+      ],
       "console": "integratedTerminal",
       "justMyCode": true,
       "env": { "PYTHONPATH": "${workspaceFolder}" }
@@ -75,7 +72,7 @@
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/src/app.py",
-      "args": ["--mode", "webcam", "--camera", "0"],
+      "args": ["--mode", "webcam"],
       "console": "integratedTerminal",
       "justMyCode": true,
       "env": {
@@ -90,7 +87,7 @@
       "program": "${workspaceFolder}/src/app.py",
       "args": [
         "--mode",  "image",
-        "--input", "data/raw/with_mask/sample.jpg"
+        "--input", "results/pred_with_mask_0001.jpg"
       ],
       "console": "integratedTerminal",
       "justMyCode": true,
