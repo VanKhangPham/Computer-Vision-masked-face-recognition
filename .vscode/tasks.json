@@ -41,7 +41,15 @@
     {
       "label": "👤 Người 1 │ Chuẩn bị dữ liệu (đầy đủ)",
       "type": "shell",
-      "command": "python src/data_preparation.py --dataset data/raw --output data/processed --visualize",
+      "command": "python src/data_preparation.py",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "👤 Người 1 │ Audit dataset",
+      "type": "shell",
+      "command": "python src/audit_dataset.py --report results/logs/dataset_audit.csv",
       "group": "test",
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
       "problemMatcher": []
